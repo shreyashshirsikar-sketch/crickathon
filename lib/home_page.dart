@@ -155,7 +155,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.08),
+              color: color.withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -167,7 +167,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 28),
@@ -197,7 +197,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -212,7 +212,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -252,7 +252,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800, height: 1),
                   ),
                   const SizedBox(height: 4),
-                  Text("Overs: 18.2", style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14)),
+                  Text("Overs: 18.2", style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14)),
                 ],
               ),
               Column(
@@ -281,7 +281,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
