@@ -23,21 +23,17 @@ class TriviaPage extends StatefulWidget {
   State<TriviaPage> createState() => _TriviaPageState();
 }
 
-class _TriviaPageState extends State<TriviaPage> {
+class _TriviaPageState extends State<TriviaPage> with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
   int _score = 0;
   int? _selectedOption;
   bool _answered = false;
+  late AnimationController _fadeController;
 
   final List<TriviaQuestion> _questions = [
     TriviaQuestion(
       question: "Who holds the record for most Test centuries?",
-      options: [
-        'Sachin Tendulkar',
-        'Virat Kohli',
-        'Ricky Ponting',
-        'Kumar Sangakkara',
-      ],
+      options: ['Sachin Tendulkar', 'Virat Kohli', 'Ricky Ponting', 'Kumar Sangakkara'],
       correctIndex: 0,
       hint: "Often called the 'Little Master'.",
     ),
@@ -65,52 +61,22 @@ class _TriviaPageState extends State<TriviaPage> {
       correctIndex: 2,
       hint: "Located in London.",
     ),
-    TriviaQuestion(
-      question: "Who has the most wickets in Test cricket history?",
-      options: [
-        'Shane Warne',
-        'Anil Kumble',
-        'James Anderson',
-        'Muttiah Muralitharan',
-      ],
-      correctIndex: 3,
-      hint: "Spin wizard from Sri Lanka.",
-    ),
-    TriviaQuestion(
-      question: "Which team won the inaugural T20 World Cup?",
-      options: ['Pakistan', 'India', 'Australia', 'South Africa'],
-      correctIndex: 1,
-      hint: "Won in 2007 under Dhoni.",
-    ),
-    TriviaQuestion(
-      question: "Who scored the fastest century in ODIs?",
-      options: [
-        'Chris Gayle',
-        'AB de Villiers',
-        'Shahid Afridi',
-        'Corey Anderson',
-      ],
-      correctIndex: 1,
-      hint: "He achieved it in just 31 balls.",
-    ),
-    TriviaQuestion(
-      question: "What is 'The Wall' a nickname for?",
-      options: [
-        'Rahul Dravid',
-        'Jacques Kallis',
-        'Steve Waugh',
-        'Alastair Cook',
-      ],
-      correctIndex: 0,
-      hint: "Known for his rock-solid defense.",
-    ),
-    TriviaQuestion(
-      question: "How many players are there on a cricket field per team?",
-      options: ['10', '11', '12', '9'],
-      correctIndex: 1,
-      hint: "The standard number for both sides.",
-    ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
 
   void _handleOptionSelected(int index) {
     if (_answered) return;
@@ -125,11 +91,13 @@ class _TriviaPageState extends State<TriviaPage> {
 
   void _nextQuestion() {
     if (_currentIndex < _questions.length - 1) {
+      _fadeController.reset();
       setState(() {
         _currentIndex++;
         _selectedOption = null;
         _answered = false;
       });
+      _fadeController.forward();
     } else {
       Navigator.pushReplacement(
         context,
@@ -143,162 +111,280 @@ class _TriviaPageState extends State<TriviaPage> {
     final currentQ = _questions[_currentIndex];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9FF),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.sports_cricket, color: Color(0xFF0058BD)),
-            SizedBox(width: 8),
+            Icon(Icons.quiz_rounded, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 8),
             Text(
-              "IND 184/3 (18.2)",
+              "Trivia Challenge",
               style: TextStyle(
-                color: Color(0xFF0058BD),
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
         ),
         actions: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            margin: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFF86F898),
+              color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
               children: [
-                const Icon(Icons.stars, size: 18),
-                Text(" Score: $_score"),
+                Icon(Icons.stars_rounded, size: 20, color: Theme.of(context).colorScheme.secondary),
+                const SizedBox(width: 6),
+                Text(
+                  "$_score",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                ),
               ],
             ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Question ${_currentIndex + 1} of ${_questions.length}"),
-                Text(
-                  "${((_currentIndex + 1) / _questions.length * 100).toInt()}%",
-                  style: const TextStyle(
-                    color: Color(0xFF0058BD),
-                    fontWeight: FontWeight.bold,
+      body: FadeTransition(
+        opacity: _fadeController,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              // Progress Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Question ${_currentIndex + 1} of ${_questions.length}",
+                    style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black54),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: (_currentIndex + 1) / _questions.length,
-              color: const Color(0xFF006E2C),
-              backgroundColor: const Color(0xFFE7E7F1),
-            ),
-            const SizedBox(height: 24),
-            Card(
-              color: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Colors.grey.shade200),
+                  Text(
+                    "${((_currentIndex + 1) / _questions.length * 100).toInt()}%",
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: (_currentIndex + 1) / _questions.length,
+                  minHeight: 8,
+                  color: Theme.of(context).colorScheme.primary,
+                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Question Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "MASTERY LEVEL",
-                      style: TextStyle(
-                        color: Color(0xFF0058BD),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        "MASTERY LEVEL",
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 10,
+                          letterSpacing: 1,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     Text(
                       currentQ.question,
                       style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        height: 1.3,
+                        color: Colors.black87,
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            ...currentQ.options.asMap().entries.map(
-              (entry) => _buildOptionTile(entry.key, entry.value),
-            ),
-            if (_answered)
-              Container(
-                margin: const EdgeInsets.only(top: 24),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 32),
+
+              // Options List
+              ...currentQ.options.asMap().entries.map((entry) => _buildOptionTile(context, entry.key, entry.value)),
+
+              // Hint Box
+              if (_answered)
+                Container(
+                  margin: const EdgeInsets.only(top: 24),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.blue.shade100),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.lightbulb_rounded, color: Colors.blue.shade600, size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          currentQ.hint,
+                          style: TextStyle(
+                            color: Colors.blue.shade900,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.lightbulb, color: Colors.blue),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(currentQ.hint)),
-                  ],
-                ),
-              ),
-          ],
+              const SizedBox(height: 80), // Padding for FAB
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _answered ? _nextQuestion : null,
-        backgroundColor: _answered ? const Color(0xFF0058BD) : Colors.grey,
-        child: const Icon(Icons.skip_next, color: Colors.white),
-      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: _answered
+          ? SizedBox(
+              width: MediaQuery.of(context).size.width * 0.9,
+              height: 56,
+              child: FloatingActionButton.extended(
+                onPressed: _nextQuestion,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                label: const Text("Next Question", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                icon: const Icon(Icons.arrow_forward_rounded),
+              ),
+            )
+          : null,
     );
   }
 
-  Widget _buildOptionTile(int index, String text) {
+  Widget _buildOptionTile(BuildContext context, int index, String text) {
     bool isSelected = _selectedOption == index;
     bool isCorrect = index == _questions[_currentIndex].correctIndex;
-    Color borderColor = _answered
-        ? (isCorrect
-              ? Colors.green
-              : (isSelected ? Colors.red : Colors.grey.shade300))
-        : Colors.grey.shade300;
+    
+    Color backgroundColor = Colors.white;
+    Color borderColor = Colors.transparent;
+    Color textColor = Colors.black87;
+    IconData? trailingIcon;
+    Color iconColor = Colors.transparent;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        border: Border.all(color: borderColor, width: 2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        onTap: () => _handleOptionSelected(index),
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: const Color(0xFFE7E7F1),
-            borderRadius: BorderRadius.circular(8),
+    if (_answered) {
+      if (isCorrect) {
+        backgroundColor = Colors.green.shade50;
+        borderColor = Colors.green;
+        textColor = Colors.green.shade800;
+        trailingIcon = Icons.check_circle_rounded;
+        iconColor = Colors.green;
+      } else if (isSelected) {
+        backgroundColor = Colors.red.shade50;
+        borderColor = Colors.red.shade300;
+        textColor = Colors.red.shade800;
+        trailingIcon = Icons.cancel_rounded;
+        iconColor = Colors.red;
+      }
+    } else if (isSelected) {
+      backgroundColor = Theme.of(context).colorScheme.primary.withOpacity(0.05);
+      borderColor = Theme.of(context).colorScheme.primary;
+      textColor = Theme.of(context).colorScheme.primary;
+    }
+
+    return GestureDetector(
+      onTap: () => _handleOptionSelected(index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: borderColor,
+            width: 2,
           ),
-          child: Center(
-            child: Text(
-              String.fromCharCode(65 + index),
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
+          boxShadow: [
+            if (!_answered)
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+          ],
         ),
-        title: Text(text),
-        trailing: _answered && isCorrect
-            ? const Icon(Icons.check_circle, color: Colors.green)
-            : null,
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _answered ? backgroundColor : Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _answered ? Colors.transparent : Colors.grey.shade200,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  String.fromCharCode(65 + index),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    color: _answered ? textColor : Colors.grey.shade500,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                  color: textColor,
+                ),
+              ),
+            ),
+            if (trailingIcon != null) Icon(trailingIcon, color: iconColor),
+          ],
+        ),
       ),
     );
   }
@@ -312,36 +398,56 @@ class ResultsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9FF),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.emoji_events, size: 100, color: Color(0xFF0058BD)),
-            const SizedBox(height: 24),
-            const Text(
-              "Quiz Complete!",
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              "Your Final Score: $score",
-              style: const TextStyle(fontSize: 24),
-            ),
-            const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0058BD),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 40,
-                  vertical: 16,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.emoji_events_rounded, size: 100, color: Theme.of(context).colorScheme.secondary),
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                "Quiz Complete!",
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Your Final Score",
+                style: TextStyle(fontSize: 18, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "$score",
+                style: TextStyle(
+                  fontSize: 64,
+                  fontWeight: FontWeight.w900,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
-              child: const Text("Back to Home"),
-            ),
-          ],
+              const SizedBox(height: 48),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text("Back to Home", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

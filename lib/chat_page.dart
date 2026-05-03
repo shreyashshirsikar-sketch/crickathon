@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:provider/provider.dart';
+import 'services/gemini_service.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -11,47 +12,12 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final List<Map<String, String>> _messages = [];
-  bool _isLoading = false;
 
-  // Initialize Gemini
-  // IMPORTANT: For production, do not hardcode the key.
-  final model = GenerativeModel(
-    model: 'gemini-1.5-flash',
-    apiKey: 'AIzaSyCayvgj5HjS0sYXL7GX8cOB5o_ou52aZ9Q',
-  );
-
-  Future<void> _sendMessage() async {
+  void _sendMessage(GeminiService geminiService) {
     if (_controller.text.isEmpty) return;
-
-    final userMessage = _controller.text;
-
-    // Add User Message
-    setState(() {
-      _messages.add({'role': 'user', 'text': userMessage});
-      _isLoading = true;
-    });
-
+    geminiService.sendMessage(_controller.text);
     _controller.clear();
     _scrollToBottom();
-
-    try {
-      final response = await model.generateContent([Content.text(userMessage)]);
-
-      setState(() {
-        _messages.add({
-          'role': 'ai',
-          'text': response.text ?? "I'm sorry, I couldn't generate a response.",
-        });
-        _isLoading = false;
-      });
-      _scrollToBottom();
-    } catch (e) {
-      setState(() {
-        _messages.add({'role': 'ai', 'text': 'Error: $e'});
-        _isLoading = false;
-      });
-    }
   }
 
   void _scrollToBottom() {
@@ -69,119 +35,159 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9FF),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
         title: const Row(
           children: [
-            Icon(Icons.sports_cricket, color: Color(0xFF0058BD)),
+            Icon(Icons.smart_toy_rounded),
             SizedBox(width: 8),
-            Text(
-              "IND 184/3 (18.2)",
-              style: TextStyle(
-                color: Color(0xFF0058BD),
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
-              ),
-            ),
+            Text("CricPulse Expert"),
           ],
         ),
       ),
-      body: Column(
-        children: [
-          // Chat Scroll Area
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                if (msg['role'] == 'user') {
-                  return _buildUserMessage(msg['text']!);
-                } else {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: _buildAiMessage(msg['text']!),
-                  );
-                }
-              },
-            ),
-          ),
+      body: Consumer<GeminiService>(
+        builder: (context, geminiService, child) {
+          // Auto-scroll when new messages arrive
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+            }
+          });
 
-          // Loading Indicator
-          if (_isLoading)
-            const LinearProgressIndicator(color: Color(0xFF0058BD)),
+          return Column(
+            children: [
+              // Chat Scroll Area
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: geminiService.messages.length,
+                  itemBuilder: (context, index) {
+                    final msg = geminiService.messages[index];
+                    if (msg['role'] == 'user') {
+                      return _buildUserMessage(msg['text']!);
+                    } else {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildAiMessage(msg['text']!),
+                      );
+                    }
+                  },
+                ),
+              ),
 
-          // Input Area (Using your styled layout)
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Colors.grey)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF2F3FD),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: TextField(
-                      controller: _controller,
-                      decoration: const InputDecoration(
-                        hintText: "Ask about rules, stats...",
-                        border: InputBorder.none,
-                        icon: Icon(Icons.mood, color: Colors.grey),
-                        suffixIcon: Icon(Icons.attach_file, color: Colors.grey),
+              // Loading Indicator
+              if (geminiService.isLoading)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
-                      onSubmitted: (_) => _sendMessage(),
+                      const SizedBox(width: 8),
+                      Text("Expert is typing...", style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                    ],
+                  ),
+                ),
+
+              // Input Area
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -5),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: _isLoading ? null : _sendMessage,
-                  child: const CircleAvatar(
-                    backgroundColor: Color(0xFF0058BD),
-                    child: Icon(Icons.send, color: Colors.white, size: 20),
-                  ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F2F5),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: TextField(
+                          controller: _controller,
+                          decoration: const InputDecoration(
+                            hintText: "Ask about rules, stats...",
+                            border: InputBorder.none,
+                          ),
+                          onSubmitted: (_) => _sendMessage(geminiService),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: geminiService.isLoading ? null : () => _sendMessage(geminiService),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.secondary,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
-
-  // --- Your Original Styling Helpers ---
 
   Widget _buildAiMessage(String text) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const CircleAvatar(
-          backgroundColor: Color(0xFF2771DF),
-          radius: 16,
-          child: Icon(Icons.smart_toy, color: Colors.white, size: 18),
-        ),
-        const SizedBox(width: 8),
         Container(
-          constraints: const BoxConstraints(maxWidth: 280),
-          padding: const EdgeInsets.all(12),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topRight: Radius.circular(12),
-              bottomLeft: Radius.circular(12),
-              bottomRight: Radius.circular(12),
-            ),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            shape: BoxShape.circle,
           ),
-          child: Text(text),
+          child: Icon(Icons.smart_toy_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(20),
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(text, style: const TextStyle(height: 1.4, fontSize: 15)),
+          ),
         ),
       ],
     );
@@ -190,21 +196,39 @@ class _ChatPageState extends State<ChatPage> {
   Widget _buildUserMessage(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 280),
-          padding: const EdgeInsets.all(12),
-          decoration: const BoxDecoration(
-            color: Color(0xFF0058BD),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(12),
-              bottomLeft: Radius.circular(12),
-              bottomRight: Radius.circular(12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).colorScheme.primary,
+                    Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Text(text, style: const TextStyle(color: Colors.white, height: 1.4, fontSize: 15)),
             ),
           ),
-          child: Text(text, style: const TextStyle(color: Colors.white)),
-        ),
+        ],
       ),
     );
   }
